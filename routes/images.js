@@ -50,6 +50,7 @@ const storage = multer.diskStorage({
     const name = file.originalname.toLowerCase().split(' ').join('-');
     const ext = MIME_TYPE_MAP[file.mimetype];
     const newFileName = name + '-' + Date.now() + '.' + ext;
+    console.log(newFileName);
     fileRename = newFileName;
     cb(null, newFileName);
   }
