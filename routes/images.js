@@ -43,7 +43,7 @@ const storage = multer.diskStorage({
     if(isValid){
       error = null;
     }
-    cb(error, 'backend/images');
+    cb(error, 'images');
   },
   filename: (req, file, cb) => {
     const name = file.originalname.toLowerCase().split(' ').join('-');
@@ -85,7 +85,7 @@ router.post("/post", (req, res, next) => {
       const img = new Images({
         _userID: req.body._userID,
         title: fileRename,
-        path: 'backend/images',
+        path: 'images',
         originalName: req.file.originalname
       });
       // res.status(200).json({ message: "Image Upload Almost Working!!!" });
