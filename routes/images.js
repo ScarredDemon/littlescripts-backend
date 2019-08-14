@@ -91,7 +91,7 @@ router.post("/post", (req, res, next) => {
     Bucket: S3_BUCKET,
     Key: fileRename,
     Expires: 60,
-    ContentType: fileType,
+    ContentType: 'image/jpeg',
     ACL: 'public-read'
   };
 
