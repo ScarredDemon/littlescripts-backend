@@ -112,7 +112,7 @@ router.post("/post", (req, res, next) => {
           const img = new Images({
             _userID: req.body._userID,
             title: fileRename,
-            path: `https://${S3_BUCKET}.s3.amazonaws.com/${fileRename}`,
+            path: `https://littlescriptsawsbucket.eu-west-2.s3.amazonaws.com/${fileRename}`,
             originalName: req.file.originalname
           });
           // res.status(200).json({ message: "Image Upload Almost Working!!!" });
