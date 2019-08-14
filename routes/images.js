@@ -4,6 +4,9 @@ const multer = require('multer');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const aws = require('aws-sdk');
+aws.config.region = 'eu-west-2';
+const S3_BUCKET = process.env.S3_BUCKET;
 
 // const mariadb = require('mariadb');
 // const pool = mariadb.createPool({
@@ -80,22 +83,66 @@ const uploadImg = multer({
 
 router.post("/post", (req, res, next) => {
   console.log('image upload');
-  uploadImg(req, res, (err) => {
-    if (err) {
-      res.status(415).json({ message: 'Unsupported Image type' });
-    } else {
-      const img = new Images({
-        _userID: req.body._userID,
-        title: fileRename,
-        path: 'images',
-        originalName: req.file.originalname
-      });
-      // res.status(200).json({ message: "Image Upload Almost Working!!!" });
-      img.save().then(savedImg => {
-        res.status(200).json({ message: 'Image upload Success: ', fileName: fileRename });
-      });
-    }
+
+  const s3 = new aws.S3();
+  const fileName = fileRename;
+  const fileType = req.params.file.mimetype;
+  const s3Params = {
+    Bucket: S3_BUCKET,
+    Key: fileRename,
+    Expires: 60,
+    ContentType: fileType,
+    ACL: 'public-read'
+  };
+
+  s3.getSignedUrl('putObject', s3Params, (err, data) => {
+    if(err){
+      console.log(err);
+      res.status(415).json({ message: 'Something went wrong signing the file' });
+    };
+    uploadImage(data)
   });
+
+  function uploadImage(signedRequest) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', signedRequest);
+    xhr.onreadystatechange = () => {
+      if(xhr.readyState === 4){
+        if(xhr.status === 200){
+          const img = new Images({
+            _userID: req.body._userID,
+            title: fileRename,
+            path: `https://${S3_BUCKET}.s3.amazonaws.com/${fileRename}`,
+            originalName: req.file.originalname
+          });
+          // res.status(200).json({ message: "Image Upload Almost Working!!!" });
+          img.save().then(savedImg => {
+            res.status(200).json({ message: 'Image upload Success: ', fileName: fileRename });
+          });
+        }
+        else{
+          res.status(415).json({ message: 'Something Went Wrong uploading the file' });
+        }
+      }
+    };
+    xhr.send(file);
+
+  }
+
+    // if (err) {
+    //   res.status(415).json({ message: 'Unsupported Image type' });
+    // } else {
+    //   const img = new Images({
+    //     _userID: req.body._userID,
+    //     title: fileRename,
+    //     path: 'images',
+    //     originalName: req.file.originalname
+    //   });
+    //   // res.status(200).json({ message: "Image Upload Almost Working!!!" });
+    //   img.save().then(savedImg => {
+    //     res.status(200).json({ message: 'Image upload Success: ', fileName: fileRename });
+    //   });
+    // }
 });
 
 router.get("/get/:_userID", (req, res, next) => {
@@ -151,23 +198,22 @@ router.get("/get/:_userID", (req, res, next) => {
 router.get("/download/:imgTitle", (req, res, next) => {
   let imgDir = path.join(__dirname, '../images');
   let fileName;
-  let options = {
-    root: imgDir
-  }
+  let imgUrl;
   Images.find({ title: req.params.imgTitle})
   .then(image => {
     fileName = image[0].title;
-    res.sendFile(fileName, options, (err) => {
+    imgUrl = image[0].path;
+    res.sendFile(imgUrl, (err) => {
       if(err) {
         res.status(400).json({
           message: 'An unknow error occured'
         });
         return;
       }
-      // res.status(400).json({
-      //   message: 'File successfully sent',
-      //   fileName: fileName
-      // });
+      res.status(400).json({
+        message: 'File successfully sent',
+        fileName: fileName
+      });
     })
   });
 });
