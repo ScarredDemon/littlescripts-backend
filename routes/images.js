@@ -125,7 +125,7 @@ router.post("/post", (req, res, next) => {
         }
       }
     };
-    xhr.send(file);
+    // xhr.send(file);
 
   }
 
